@@ -1,0 +1,60 @@
+version: "3"
+
+services:
+  database:
+    container_name: '${COMPOSE_PROJECT_NAME}-database'
+    image: mysql:5.7
+    volumes:
+      - "./data/db/mysql:/var/lib/mysql"
+    environment:
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    networks:
+      - app_network
+
+  phpmyadmin:
+    container_name: '${COMPOSE_PROJECT_NAME}-phpmyadmin'
+    depends_on:
+      - database
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: database
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app_network
+
+  php:
+    container_name: '${COMPOSE_PROJECT_NAME}-php'
+    build: './config/php'
+    volumes:
+      - ./config/php/conf.d/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./src:/var/www/qsl
+    networks:
+      - app_network
+    depends_on:
+      - database
+
+  webserver:
+    container_name: '${COMPOSE_PROJECT_NAME}-webserver'
+    build: './config/nginx'
+    ports:
+      - 80:80
+      - 443:443
+    tty: true
+    environment:
+      - NGINX_HOST=${APP_DOMAIN}
+    volumes:
+      - ./config/certs:/etc/ssl/certs
+      - ./src:/var/www/qsl
+    depends_on:
+      - php
+    networks:
+      - app_network
+
+networks:
+  app_network:
