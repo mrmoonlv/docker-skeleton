@@ -56,5 +56,18 @@ services:
     networks:
       - app_network
 
+  smtp:
+    image: mailhog/mailhog
+    container_name: '${COMPOSE_PROJECT_NAME}-smtp'
+    command: ["-smtp-bind-addr", "0.0.0.0:25"]
+    user: root
+    expose:
+      - 25
+      - 8025
+    ports:
+      - 8025:8025
+    healthcheck:
+      test: echo | telnet 127.0.0.1 25
+
 networks:
   app_network:
